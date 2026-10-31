@@ -13,6 +13,7 @@ func main() {
 	scanner := bufio.NewScanner(os.Stdin)
 	var cl = pokeapi.NewClient()
 	var cfg = config{client: cl, commands: getAvailableCommands()}
+	cfg.pokemon = make(map[string]pokeapi.Pokemon)
 	for {
 		fmt.Print("Pokedex >")
 		scanner.Scan()

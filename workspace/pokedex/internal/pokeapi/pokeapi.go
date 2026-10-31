@@ -38,6 +38,11 @@ type AreaDetails struct {
 	} `json:"pokemon_encounters"`
 }
 
+type Pokemon struct {
+	Name           string `json:"name"`
+	BaseExperience int    `json:"base_experience"`
+}
+
 func NewClient() Client {
 	c := pokecache.NewCache(5 * time.Second)
 	client := http.Client{}
@@ -83,6 +88,46 @@ func (theClient *Client) ListLocations(url string) (Location, error) {
 	}
 
 	return lo, nil
+}
+
+func (client Client) GetPokemon(pokemonName string) (Pokemon, error) {
+	if pokemonName == "" {
+		return Pokemon{}, fmt.Errorf("No pokemon specified")
+	}
+	var body []byte
+	url := "https://pokeapi.co/api/v2/pokemon/" + pokemonName
+
+	//get cached value if it exists
+	cachedValue, ok := client.theCache.Get(url)
+	if ok {
+		body = cachedValue
+	} else {
+		res, err := client.hc.Get(url)
+
+		if err != nil {
+			return Pokemon{}, err
+		}
+
+		body, err = io.ReadAll(res.Body)
+		defer res.Body.Close()
+
+		if err != nil {
+			return Pokemon{}, err
+		}
+
+		if res.StatusCode > 299 {
+			return Pokemon{}, fmt.Errorf("Error code %d", res.StatusCode)
+		}
+		client.theCache.Add(url, body)
+	}
+	var pokemon = Pokemon{}
+
+	err := json.Unmarshal(body, &pokemon)
+	if err != nil {
+		return Pokemon{}, err
+	}
+
+	return pokemon, nil
 }
 
 func (client Client) ListAreaPokemon(areaName string) (AreaDetails, error) {

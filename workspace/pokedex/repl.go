@@ -91,15 +91,36 @@ func commandExplore(cfg *config, args []string) error {
 
 func commandCatch(cfg *config, args []string) error {
 	pokemonName := args[0]
-	fmt.Printf("Throwxing a Pokeball at %s...\n", pokemonName)
-	DiceThrow := rand.Intn(100)
+	fmt.Printf("Throwing a Pokeball at %s...\n", pokemonName)
+	DiceThrow := rand.Intn(1000)
 
-	if DiceThrow >= 50 {
-		fmt.Printf("%s was caught!", pokemonName)
-	} else {
-		fmt.Printf("%s escaped!", pokemonName)
+	pokemon, err := cfg.client.GetPokemon(pokemonName)
+
+	if err != nil {
+		fmt.Print("That pokemon does not exist!\n")
+		return err
 	}
 
+	if DiceThrow >= pokemon.BaseExperience {
+		fmt.Printf("%s was caught!\n", pokemonName)
+		cfg.pokemon[pokemonName] = pokemon
+	} else {
+		fmt.Printf("%s escaped!\n", pokemonName)
+	}
+
+	return nil
+}
+
+func commandInspect(cfg *config, args []string) error {
+	pokemonName := args[0]
+
+	pm, ok := cfg.pokemon[pokemonName]
+
+	if ok {
+		fmt.Printf("Pokemon: %s\nBase XP: %d\n", pm.Name, pm.BaseExperience)
+	} else {
+		fmt.Println("You do not know that pokemon!")
+	}
 	return nil
 }
 
@@ -141,6 +162,11 @@ func getAvailableCommands() map[string]cliCommand {
 			description: "catches a pokemon",
 			callback:    commandCatch,
 		},
+		"inspect": {
+			name:        "inspect",
+			description: "inspects a caught pokemon",
+			callback:    commandInspect,
+		},
 	}
 	return availableCommands
 }
@@ -150,4 +176,5 @@ type config struct {
 	next     string
 	previous string
 	client   pokeapi.Client
+	pokemon  map[string]pokeapi.Pokemon
 }
